@@ -3,17 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="./assets/favicon.png">
     <link rel="stylesheet" href="/css/index.css">
-    <title>Chat App</title>
+    <title>Bubbly</title>
 </head>
 <body>
-    <h1>Chat App</h1>
-    <ul id="messages"></ul>
-    <form id="message-form">
-        <input type="text" id="message-input" placeholder="Type your message here..." required>
+  <div class="container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <h2>Chats</h2>
+      <ul class="chat-list">
+        <li>Momski</li>
+        <li>Bubbly Team (4)</li>
+        <li>Bianca</li>
+        <li>Elene</li>
+        <li>Brother</li>
+        <li>Nadya</li>
+        <li>Family (4)</li>
+        <li>Lincke Lewis</li>
+        <li>Cacaa</li>
+      </ul>
+    </aside>
+
+    <!-- Chatroom -->
+    <main class="chatroom">
+      <div class="chat-header">
+        <div class="avatar">
+          <img src="./assets/avatar.png" alt="Bianca">
+        </div>
+        <div class="chat-name">Bianca</div>
+      </div>
+      <div class="chat-window" id="chat-window">
+        <!-- Messages will be dynamically inserted here -->
+      </div>
+      <form id="message-form" class="message-form">
+        <input type="text" id="message-input" placeholder="Type your message..." autocomplete="off" required>
         <button type="submit">Send</button>
-        <button id="send-location">Send Location</button>
-    </form>
+      </form>
+    </main>
+  </div>
+    <script src="./js/"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qs/6.6.0/qs.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="/js/chat.js"></script>
 </body>

@@ -16,23 +16,20 @@ const pathToPublic = path.join(__dirname, '../public')
 app.use(express.static(pathToPublic))
 
 io.on('connection', (socket) => {
-    socket.emit('message', 'Welcome!')
-    socket.broadcast.emit('message', 'A new user has joined!')
+    socket.emit('chatMessage', { text: 'Welcome!', sender: 'system' });
+    socket.broadcast.emit('chatMessage', { text: 'A new user has joined!', sender: 'system' });
 
-    socket.on('sendMessage', (message, callback) => {
-        console.log("Message received: " + message)
-        io.emit('sendMessage', message)
-        callback()
-    })
+    socket.on('chatMessage', ({ text, sender }) => {
+        io.emit('chatMessage', { text, sender });
+    });
 
-    socket.on('sendLocation', (coords, callback) => {
-        io.emit('sendMessage', `https://google.com/maps?q=${coords.latitude},${coords.longitude}`)
-        callback()
-    })
+    socket.on('sendLocation', ({ latitude, longitude, sender }) => {
+        io.emit('locationMessage', { url: `https://google.com/maps?q=${latitude},${longitude}`, sender });
+    });
 
     socket.on('disconnect', () => {
-        io.emit('sendMessage', 'A user has left!')
-    })
+        io.emit('chatMessage', { text: 'A user has left!', sender: 'system' });
+    });
 })
 
 app.get('/', (req, res) => {
