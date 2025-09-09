@@ -1,0 +1,28 @@
+[
+  {
+    "id": "user_uj11jkxib",
+    "username": "Danny",
+    "password": "123",
+    "friends": [
+      {
+        "id": "user_zy6av2cya",
+        "username": "Ken",
+        "avatar": "./assets/avatar.png",
+        "preview": "Say hello!"
+      }
+    ]
+  },
+  {
+    "id": "user_zy6av2cya",
+    "username": "Ken",
+    "password": "123",
+    "friends": [
+      {
+        "id": "user_uj11jkxib",
+        "username": "Danny",
+        "avatar": "./assets/avatar.png",
+        "preview": "Say hello!"
+      }
+    ]
+  }
+]

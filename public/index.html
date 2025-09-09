@@ -1,51 +1,155 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/x-icon" href="./assets/favicon.png">
-    <link rel="stylesheet" href="/css/index.css">
-    <title>Bubbly</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bubbly Chat</title>
+  <link rel="stylesheet" href="/css/index.css">
+  <style>
+    /* Enhanced message styles */
+    .message {
+      position: relative;
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      max-width: 80%;
+      word-break: break-word;
+      animation: fade-in 0.3s ease-in-out;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message.user {
+      background-color: #dcf8c6;
+      margin-left: auto;
+    }
+
+    .message.bianca {
+      background-color: #fff;
+    }
+
+    .message-text {
+      margin-bottom: 5px;
+    }
+
+    .message-time {
+      font-size: 11px;
+      color: #888;
+      text-align: right;
+    }
+
+    /* Notification styles */
+    .notification {
+      text-align: center;
+      margin: 10px 0;
+      padding: 8px;
+      background-color: rgba(0,0,0,0.1);
+      border-radius: 20px;
+      font-size: 12px;
+      color: #555;
+      animation: notification-appear 0.3s ease;
+    }
+
+    @keyframes notification-appear {
+      from { opacity: 0; transform: scale(0.8); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    
+    /* Add debugging panel if needed */
+    #debug-panel {
+      position: fixed;
+      bottom: 0;
+      right: 0;
+      width: 300px;
+      height: 200px;
+      background: rgba(0,0,0,0.8);
+      color: #0f0;
+      font-family: monospace;
+      font-size: 12px;
+      padding: 10px;
+      overflow: auto;
+      z-index: 9999;
+      display: none; /* Hide by default, can be enabled in console */
+    }
+    
+    #debug-log {
+      height: 100%;
+      overflow: auto;
+    }
+    
+    .debug-entry {
+      margin-bottom: 3px;
+      border-bottom: 1px solid #333;
+      padding-bottom: 3px;
+    }
+
+    /* Message sending indicator */
+    .message-sending-indicator {
+      text-align: right;
+      margin: 5px 10px;
+      font-size: 12px;
+      font-style: italic;
+      color: #888;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.4; }
+      50% { opacity: 1; }
+      100% { opacity: 0.4; }
+    }
+  </style>
 </head>
 <body>
+  <!-- Debug panel (hidden by default) -->
+  <div id="debug-panel">
+    <div id="debug-log"></div>
+  </div>
+  
   <div class="container">
     <!-- Sidebar -->
-    <aside class="sidebar">
+    <div class="sidebar">
       <h2>Chats</h2>
-      <ul class="chat-list">
-        <li>Momski</li>
-        <li>Bubbly Team (4)</li>
-        <li>Bianca</li>
-        <li>Elene</li>
-        <li>Brother</li>
-        <li>Nadya</li>
-        <li>Family (4)</li>
-        <li>Lincke Lewis</li>
-        <li>Cacaa</li>
-      </ul>
-    </aside>
-
-    <!-- Chatroom -->
-    <main class="chatroom">
-      <div class="chat-header">
-        <div class="avatar">
-          <img src="./assets/avatar.png" alt="Bianca">
+      <!-- User info will be inserted here -->
+      
+      <div class="add-friend-container">
+        <div class="add-friend-input-container">
+          <input type="text" id="friend-name-input" placeholder="Enter username or ID">
+          <div class="input-hint">Enter username or full ID (e.g., user_abc123)</div>
         </div>
-        <div class="chat-name">Bianca</div>
+        <button id="add-friend-btn">Add Friend</button>
+      </div>
+      
+      <!-- Chat list -->
+      <ul class="chat-list" id="friends-list">
+        <!-- Friends will be inserted here -->
+      </ul>
+    </div>
+    
+    <!-- Chat Room -->
+    <div class="chatroom">
+      <div class="chat-header">
+        <!-- Chat header will be updated when a friend is selected -->
       </div>
       <div class="chat-window" id="chat-window">
-        <!-- Messages will be dynamically inserted here -->
+        <!-- Messages will be inserted here -->
       </div>
-      <form id="message-form" class="message-form">
-        <input type="text" id="message-input" placeholder="Type your message..." autocomplete="off" required>
+      <form class="message-form" id="message-form">
+        <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off">
         <button type="submit">Send</button>
+        <button id="send-location" type="button">📍 Location</button>
       </form>
-    </main>
+    </div>
   </div>
-    <script src="./js/"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qs/6.6.0/qs.min.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="/js/chat.js"></script>
+  
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/chat.js"></script>
+  <script src="/js/inspector.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qs/6.6.0/qs.min.js"></script>
 </body>
 </html>

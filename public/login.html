@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Bubbly Chat</title>
+  <link rel="stylesheet" href="/css/auth.css">
+</head>
+<body>
+  <div class="container">
+    <div class="auth-box">
+      <h2>Login to Bubbly</h2>
+      <div class="tabs">
+        <button class="tab active" id="login-tab">Login</button>
+        <button class="tab" id="signup-tab">Sign Up</button>
+      </div>
+      
+      <!-- Login Form -->
+      <form id="login-form" class="auth-form">
+        <div class="input-group">
+          <label for="login-username">Username</label>
+          <input type="text" id="login-username" placeholder="Enter username">
+        </div>
+        <div class="input-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" placeholder="Enter password">
+        </div>
+        <button type="button" id="login-btn">Login</button>
+      </form>
+      
+      <!-- Signup Form -->
+      <form id="signup-form" class="auth-form" style="display: none;">
+        <div class="input-group">
+          <label for="signup-username">Username</label>
+          <input type="text" id="signup-username" placeholder="Choose username">
+        </div>
+        <div class="input-group">
+          <label for="signup-password">Password</label>
+          <input type="password" id="signup-password" placeholder="Choose password">
+        </div>
+        <div class="input-group">
+          <label for="signup-confirm-password">Confirm Password</label>
+          <input type="password" id="signup-confirm-password" placeholder="Confirm password">
+        </div>
+        <button type="button" id="signup-btn">Sign Up</button>
+      </form>
+    </div>
+  </div>
+  
+  <script src="/js/auth.js"></script>
+  <script src="/js/inspector.js"></script>
+</body>
+</html>
