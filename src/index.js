@@ -4,6 +4,7 @@ import http from 'http'
 import {Server} from 'socket.io'
 import {fileURLToPath} from 'url'
 import database from './database.js'
+import bcrypt from 'bcrypt'
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -33,7 +34,7 @@ app.use(express.static(pathToPublic))
 app.use(express.json());
 
 // API routes for users
-app.post('/api/users/register', (req, res) => {
+app.post('/api/users/register', async (req, res) => {
   const { username, password } = req.body;
   
   if (!username || !password) {
@@ -52,37 +53,49 @@ app.post('/api/users/register', (req, res) => {
     });
   }
   
-  // Generate unique ID
-  const userId = 'user_' + Math.random().toString(36).substr(2, 9);
-  
-  // Create new user
-  const newUser = {
-    id: userId,
-    username,
-    password,  // In production, you should hash this
-    friends: []
-  };
-  
-  // Add user to database
-  const result = database.addUser(newUser);
-  
-  if (result.success) {
-    // Don't return password in response
-    const { password, ...userWithoutPassword } = result.user;
-    return res.status(201).json({ 
-      success: true, 
-      user: userWithoutPassword
-    });
-  } else {
-    return res.status(500).json({ 
-      success: false, 
-      error: result.error || 'Failed to create user'
+  try {
+    // Generate unique ID
+    const userId = 'user_' + Math.random().toString(36).substr(2, 9);
+    
+    // Hash the password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    
+    // Create new user with hashed password
+    const newUser = {
+      id: userId,
+      username,
+      password: hashedPassword,
+      friends: []
+    };
+    
+    // Add user to database
+    const result = database.addUser(newUser);
+    
+    if (result.success) {
+      // Don't return password in response
+      const { password, ...userWithoutPassword } = result.user;
+      return res.status(201).json({ 
+        success: true, 
+        user: userWithoutPassword
+      });
+    } else {
+      return res.status(500).json({ 
+        success: false, 
+        error: result.error || 'Failed to create user'
+      });
+    }
+  } catch (error) {
+    console.error('Error during user registration:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to create user account'
     });
   }
 });
 
 // Login endpoint
-app.post('/api/users/login', (req, res) => {
+app.post('/api/users/login', async (req, res) => {
   const { username, password } = req.body;
   
   if (!username || !password) {
@@ -95,21 +108,37 @@ app.post('/api/users/login', (req, res) => {
   // Find user
   const user = database.findUserByUsername(username);
   
-  // Check credentials
-  if (!user || user.password !== password) {
+  if (!user) {
     return res.status(401).json({ 
       success: false, 
       error: 'Invalid username or password'
     });
   }
   
-  // Don't return password in response
-  const { password: pwd, ...userWithoutPassword } = user;
-  
-  return res.json({ 
-    success: true, 
-    user: userWithoutPassword
-  });
+  try {
+    // Check password with bcrypt
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) {
+      return res.status(401).json({ 
+        success: false, 
+        error: 'Invalid username or password'
+      });
+    }
+    
+    // Don't return password in response
+    const { password: pwd, ...userWithoutPassword } = user;
+    
+    return res.json({ 
+      success: true, 
+      user: userWithoutPassword
+    });
+  } catch (error) {
+    console.error('Error during login:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Login failed. Please try again.'
+    });
+  }
 });
 
 // Add friend endpoint
