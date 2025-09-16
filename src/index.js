@@ -4,7 +4,6 @@ import http from 'http'
 import {Server} from 'socket.io'
 import {fileURLToPath} from 'url'
 import database from './database.js'
-import bcrypt from 'bcrypt'
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -34,7 +33,7 @@ app.use(express.static(pathToPublic))
 app.use(express.json());
 
 // API routes for users
-app.post('/api/users/register', async (req, res) => {
+app.post('/api/users/register', (req, res) => {
   const { username, password } = req.body;
   
   if (!username || !password) {
@@ -53,49 +52,37 @@ app.post('/api/users/register', async (req, res) => {
     });
   }
   
-  try {
-    // Generate unique ID
-    const userId = 'user_' + Math.random().toString(36).substr(2, 9);
-    
-    // Hash the password
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-    
-    // Create new user with hashed password
-    const newUser = {
-      id: userId,
-      username,
-      password: hashedPassword,
-      friends: []
-    };
-    
-    // Add user to database
-    const result = database.addUser(newUser);
-    
-    if (result.success) {
-      // Don't return password in response
-      const { password, ...userWithoutPassword } = result.user;
-      return res.status(201).json({ 
-        success: true, 
-        user: userWithoutPassword
-      });
-    } else {
-      return res.status(500).json({ 
-        success: false, 
-        error: result.error || 'Failed to create user'
-      });
-    }
-  } catch (error) {
-    console.error('Error during user registration:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to create user account'
+  // Generate unique ID
+  const userId = 'user_' + Math.random().toString(36).substr(2, 9);
+  
+  // Create new user
+  const newUser = {
+    id: userId,
+    username,
+    password,  // In production, you should hash this
+    friends: []
+  };
+  
+  // Add user to database
+  const result = database.addUser(newUser);
+  
+  if (result.success) {
+    // Don't return password in response
+    const { password, ...userWithoutPassword } = result.user;
+    return res.status(201).json({ 
+      success: true, 
+      user: userWithoutPassword
+    });
+  } else {
+    return res.status(500).json({ 
+      success: false, 
+      error: result.error || 'Failed to create user'
     });
   }
 });
 
 // Login endpoint
-app.post('/api/users/login', async (req, res) => {
+app.post('/api/users/login', (req, res) => {
   const { username, password } = req.body;
   
   if (!username || !password) {
@@ -108,37 +95,21 @@ app.post('/api/users/login', async (req, res) => {
   // Find user
   const user = database.findUserByUsername(username);
   
-  if (!user) {
+  // Check credentials
+  if (!user || user.password !== password) {
     return res.status(401).json({ 
       success: false, 
       error: 'Invalid username or password'
     });
   }
   
-  try {
-    // Check password with bcrypt
-    const passwordMatch = await bcrypt.compare(password, user.password);
-    if (!passwordMatch) {
-      return res.status(401).json({ 
-        success: false, 
-        error: 'Invalid username or password'
-      });
-    }
-    
-    // Don't return password in response
-    const { password: pwd, ...userWithoutPassword } = user;
-    
-    return res.json({ 
-      success: true, 
-      user: userWithoutPassword
-    });
-  } catch (error) {
-    console.error('Error during login:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Login failed. Please try again.'
-    });
-  }
+  // Don't return password in response
+  const { password: pwd, ...userWithoutPassword } = user;
+  
+  return res.json({ 
+    success: true, 
+    user: userWithoutPassword
+  });
 });
 
 // Add friend endpoint
@@ -282,6 +253,162 @@ app.get('/api/chat/:roomId', (req, res) => {
   });
 });
 
+// Create a new group chat
+app.post('/api/groups/create', (req, res) => {
+  const { name, creatorId, members } = req.body;
+  
+  if (!name || !creatorId) {
+    return res.status(400).json({ 
+      success: false, 
+      error: 'Group name and creator ID are required'
+    });
+  }
+  
+  // Create new group
+  const groupId = 'group_' + Math.random().toString(36).substr(2, 9);
+  
+  // Initialize member list with creator
+  const memberList = [creatorId];
+  
+  // Add other members if provided
+  if (members && Array.isArray(members)) {
+    // Filter out duplicates and add valid members
+    members.forEach(memberId => {
+      if (memberId !== creatorId && !memberList.includes(memberId)) {
+        const user = database.findUserById(memberId);
+        if (user) {
+          memberList.push(memberId);
+        }
+      }
+    });
+  }
+  
+  const newGroup = {
+    id: groupId,
+    name,
+    creatorId,
+    members: memberList,
+    createdAt: new Date().toISOString()
+  };
+  
+  // Add group to database
+  const result = database.createGroup(newGroup);
+  
+  if (result.success) {
+    // Notify all members about new group
+    memberList.forEach(memberId => {
+      if (userSockets[memberId]) {
+        userSockets[memberId].emit('groupCreated', {
+          group: result.group
+        });
+      }
+    });
+    
+    return res.status(201).json({ 
+      success: true, 
+      group: result.group
+    });
+  } else {
+    return res.status(500).json({ 
+      success: false, 
+      error: result.error || 'Failed to create group'
+    });
+  }
+});
+
+// Add member to group
+app.post('/api/groups/:groupId/members', (req, res) => {
+  const { groupId } = req.params;
+  const { memberId, addedBy } = req.body;
+  
+  if (!memberId || !addedBy) {
+    return res.status(400).json({ 
+      success: false, 
+      error: 'Member ID and adder ID are required'
+    });
+  }
+  
+  // Check if group exists
+  const group = database.getGroupById(groupId);
+  if (!group) {
+    return res.status(404).json({ 
+      success: false, 
+      error: 'Group not found'
+    });
+  }
+  
+  // Check if user exists
+  const user = database.findUserById(memberId);
+  if (!user) {
+    return res.status(404).json({ 
+      success: false, 
+      error: 'User not found'
+    });
+  }
+  
+  // Add member to group
+  const result = database.addGroupMember(groupId, memberId);
+  
+  if (result.success) {
+    // Notify the added user
+    if (userSockets[memberId]) {
+      const adder = database.findUserById(addedBy);
+      userSockets[memberId].emit('addedToGroup', {
+        group: result.group,
+        addedBy: adder ? adder.username : 'Someone'
+      });
+    }
+    
+    // Notify other group members
+    group.members.forEach(existingMemberId => {
+      if (existingMemberId !== memberId && userSockets[existingMemberId]) {
+        userSockets[existingMemberId].emit('memberAddedToGroup', {
+          group: result.group,
+          newMemberId: memberId,
+          newMemberUsername: user.username
+        });
+      }
+    });
+    
+    return res.json({ 
+      success: true, 
+      group: result.group
+    });
+  } else {
+    return res.status(400).json({ 
+      success: false, 
+      error: result.error || 'Failed to add member to group'
+    });
+  }
+});
+
+// Get group details
+app.get('/api/groups/:groupId', (req, res) => {
+  const group = database.getGroupById(req.params.groupId);
+  
+  if (!group) {
+    return res.status(404).json({ 
+      success: false, 
+      error: 'Group not found'
+    });
+  }
+  
+  return res.json({ 
+    success: true, 
+    group
+  });
+});
+
+// Get all groups for a user
+app.get('/api/users/:userId/groups', (req, res) => {
+  const groups = database.getUserGroups(req.params.userId);
+  
+  return res.json({ 
+    success: true, 
+    groups
+  });
+});
+
 // Friend notification system - track user sockets
 const userSockets = {}; // Map of userId to socket
 
@@ -361,47 +488,20 @@ io.on('connection', (socket) => {
                 // Save to database
                 database.saveChatMessage(room, message);
                 
-                // Get all connected socket IDs in this room
-                const socketsInRoom = io.sockets.adapter.rooms.get(room);
-                console.log(`Sockets in room ${room}:`, socketsInRoom ? socketsInRoom.size : 0);
-                
-                let directDeliverySuccess = false;
-                
-                // Identify recipient user ID (in private chats)
-                if (room.startsWith('private_')) {
-                    const userIds = room.replace('private_', '').split('_');
-                    const recipientId = userIds.find(id => id !== sender);
-                    
-                    if (recipientId) {
-                        console.log(`Direct message to recipient: ${recipientId}`);
-                        
-                        // Try direct delivery to recipient socket if available
-                        const recipientSocket = userSockets[recipientId];
-                        if (recipientSocket) {
-                            console.log(`Sending directly to recipient's socket`);
-                            recipientSocket.emit('chatMessage', {
-                                ...message,
-                                room
-                            });
-                            directDeliverySuccess = true;
-                        }
-                    }
-                }
-                
-                // Also broadcast to the room (this ensures delivery even if direct fails)
-                io.in(room).emit('chatMessage', { 
+                // CRITICAL FIX: Use io.to(room) instead of socket.to(room)
+                // This ensures ALL clients in the room (including sender) receive the message
+                io.to(room).emit('chatMessage', { 
                     ...message,
                     room
                 });
                 
-                // Log the event for debugging
-                console.log(`Message broadcasted to room ${room}`);
+                console.log(`Message broadcasted to ALL sockets in room ${room}`);
                 
                 // Send acknowledgment if callback exists
                 if (typeof callback === 'function') {
                     callback({ 
                         success: true,
-                        directDelivery: directDeliverySuccess
+                        messageId: message.messageId
                     });
                 }
             } else if (typeof callback === 'function') {
@@ -429,34 +529,15 @@ io.on('connection', (socket) => {
                     url,
                     sender,
                     senderUsername,
-                    timestamp: timestamp || new Date().getTime()
+                    timestamp: timestamp || new Date().getTime(),
+                    messageId: `loc_${Date.now()}`
                 };
                 
                 // Save to database
                 database.saveChatMessage(room, message);
                 
-                // Identify recipient user ID (in private chats)
-                if (room.startsWith('private_')) {
-                    const userIds = room.replace('private_', '').split('_');
-                    const recipientId = userIds.find(id => id !== sender);
-                    
-                    if (recipientId) {
-                        console.log(`Direct location message to recipient: ${recipientId}`);
-                        
-                        // Try direct delivery to recipient socket if available
-                        const recipientSocket = userSockets[recipientId];
-                        if (recipientSocket) {
-                            console.log(`Sending location directly to recipient's socket`);
-                            recipientSocket.emit('locationMessage', {
-                                ...message,
-                                room
-                            });
-                        }
-                    }
-                }
-                
-                // Also broadcast to the room (this ensures delivery even if direct fails)
-                io.in(room).emit('locationMessage', { 
+                // CRITICAL FIX: Use io.to(room) to send to ALL clients including sender
+                io.to(room).emit('locationMessage', { 
                     ...message,
                     room
                 });
@@ -464,6 +545,72 @@ io.on('connection', (socket) => {
         } catch (error) {
             console.error('Error handling location message:', error);
             socket.emit('errorMessage', { error: 'Failed to process location', details: error.message });
+        }
+    });
+
+    // Join group chat
+    socket.on('joinGroupRoom', ({ groupId, userId, username }) => {
+        // Store user info
+        socket.userId = userId;
+        socket.username = username;
+        
+        // Create room ID for the group
+        const room = `group_${groupId}`;
+        
+        // Join the room
+        socket.join(room);
+        console.log(`${username} (${userId}) joined group room: ${room}`);
+        
+        // Send chat history to user
+        const history = database.loadChatHistory(room);
+        if (history && history.length > 0) {
+            console.log(`Sending chat history for group ${groupId}: ${history.length} messages`);
+            socket.emit('chatHistory', { room, history });
+        } else {
+            console.log(`No chat history found for group ${groupId}`);
+        }
+    });
+
+    socket.on('groupChatMessage', function({ text, sender, senderUsername, groupId, timestamp, messageId }, callback) {
+        const room = `group_${groupId}`;
+        console.log(`Group message in ${room}: ${text} from ${senderUsername}`);
+        
+        try {
+            // Create message object
+            const message = { 
+                type: 'text',
+                text, 
+                sender, 
+                senderUsername,
+                timestamp: timestamp || new Date().getTime(),
+                messageId: messageId || `auto_${Date.now()}`
+            };
+            
+            // Save to database
+            database.saveChatMessage(room, message);
+            
+            // CRITICAL FIX: Use io.to(room) instead of the two-step approach
+            io.to(room).emit('chatMessage', { 
+                ...message,
+                room
+            });
+            
+            console.log(`Message broadcasted to ALL sockets in group room ${room}`);
+            
+            // Send acknowledgment if callback exists
+            if (typeof callback === 'function') {
+                callback({ 
+                    success: true,
+                    messageId: message.messageId
+                });
+            }
+        } catch (error) {
+            console.error('Error handling group chat message:', error);
+            
+            // Send error via acknowledgment if callback exists
+            if (typeof callback === 'function') {
+                callback({ success: false, error: error.message });
+            }
         }
     });
 

@@ -1,22 +1,28 @@
 // DOM Elements
 const loginForm = document.getElementById('login-form');
 const signupForm = document.getElementById('signup-form');
-const showSignupLink = document.getElementById('show-signup');
-const showLoginLink = document.getElementById('show-login');
 const signupBtn = document.getElementById('signup-btn');
 const loginBtn = document.getElementById('login-btn');
 
+// Tab buttons for switching forms
+const loginTab = document.getElementById('login-tab');
+const signupTab = document.getElementById('signup-tab');
+
 // Toggle between login and signup forms
-showSignupLink.addEventListener('click', function(e) {
+signupTab.addEventListener('click', function(e) {
   e.preventDefault();
-  loginForm.classList.add('hidden');
-  signupForm.classList.remove('hidden');
+  loginForm.style.display = 'none';
+  signupForm.style.display = '';
+  loginTab.classList.remove('active');
+  signupTab.classList.add('active');
 });
 
-showLoginLink.addEventListener('click', function(e) {
+loginTab.addEventListener('click', function(e) {
   e.preventDefault();
-  signupForm.classList.add('hidden');
-  loginForm.classList.remove('hidden');
+  signupForm.style.display = 'none';
+  loginForm.style.display = '';
+  signupTab.classList.remove('active');
+  loginTab.classList.add('active');
 });
 
 // Generate a unique user ID

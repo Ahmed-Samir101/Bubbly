@@ -9,12 +9,31 @@
         "username": "Ken",
         "avatar": "./assets/avatar.png",
         "preview": "Say hello!"
+      },
+      {
+        "id": "user_m1q5id4bt",
+        "username": "Conan",
+        "avatar": "./assets/avatar.png",
+        "preview": "Say hello!"
       }
     ]
   },
   {
     "id": "user_zy6av2cya",
     "username": "Ken",
+    "password": "123",
+    "friends": [
+      {
+        "id": "user_uj11jkxib",
+        "username": "Danny",
+        "avatar": "./assets/avatar.png",
+        "preview": "Say hello!"
+      }
+    ]
+  },
+  {
+    "id": "user_m1q5id4bt",
+    "username": "Conan",
     "password": "123",
     "friends": [
       {
