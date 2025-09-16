@@ -47,8 +47,3 @@ A real-time chat application with user authentication, friend management, and pr
 2. Install dependencies: `npm install`
 3. Start the development server: `npm run dev`
 4. Open `http://localhost:3000` in your browser
-
-## Notes
-
-- The free tier on Render will sleep after inactivity
-- The app uses an in-memory database, so data will be lost when the service restarts
