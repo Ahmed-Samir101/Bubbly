@@ -239,8 +239,7 @@ function startPrivateChat(friend) {
     // Update chat header
     chatHeader.innerHTML = `
         <div class="chat-header">
-            <div class="chat-title">Chat with ${friend.username}</div>
-            <div class="chat-subtitle">Private conversation</div>
+            <div class="chat-title">${friend.username} </div>
         </div>
     `;
     

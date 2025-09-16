@@ -1,0 +1,65 @@
+/* Notification styles */
+.notification {
+  text-align: center;
+  margin: 10px 0;
+  padding: 8px;
+  background-color: rgba(0,0,0,0.1);
+  border-radius: 20px;
+  font-size: 12px;
+  color: #555;
+  animation: notification-appear 0.3s ease;
+}
+
+@keyframes notification-appear {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.notification.error {
+  background-color: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+}
+
+/* Debug panel styling */
+#debug-panel {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  width: 300px;
+  height: 200px;
+  background: rgba(0,0,0,0.8);
+  color: #0f0;
+  font-family: monospace;
+  font-size: 12px;
+  padding: 10px;
+  overflow: auto;
+  z-index: 9999;
+  display: none; /* Hide by default, can be enabled in console */
+}
+
+#debug-log {
+  height: 100%;
+  overflow: auto;
+}
+
+.debug-entry {
+  margin-bottom: 3px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 3px;
+}
+
+/* Message sending indicator */
+.message-sending-indicator {
+  text-align: right;
+  margin: 5px 10px;
+  font-size: 12px;
+  font-style: italic;
+  color: #888;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.4; }
+  50% { opacity: 1; }
+  100% { opacity: 0.4; }
+}
