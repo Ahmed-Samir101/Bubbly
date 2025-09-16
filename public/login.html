@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login - Bubbly Chat</title>
   <link rel="stylesheet" href="/css/auth.css">
+  <link rel="icon" type="image/png" href="/assets/favicon.png">
 </head>
 <body>
   <div class="container">
@@ -23,7 +24,10 @@
         </div>
         <div class="input-group">
           <label for="login-password">Password</label>
-          <input type="password" id="login-password" placeholder="Enter password" autocomplete="current-password">
+          <div class="password-wrapper" style="position: relative;">
+            <input type="password" id="login-password" placeholder="Enter password" autocomplete="current-password">
+            <img src="/assets/hide.png" id="login-password-toggle" alt="Show Password" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 22px; height: 22px; cursor: pointer;">
+          </div>
         </div>
         <button type="button" id="login-btn">Login</button>
       </form>
@@ -36,11 +40,17 @@
         </div>
         <div class="input-group">
           <label for="signup-password">Password</label>
-          <input type="password" id="signup-password" placeholder="Choose password" autocomplete="new-password">
+          <div class="password-wrapper" style="position: relative;">
+            <input type="password" id="signup-password" placeholder="Choose password" autocomplete="new-password">
+            <img src="/assets/hide.png" id="signup-password-toggle" alt="Show Password" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 22px; height: 22px; cursor: pointer;">
+          </div>
         </div>
         <div class="input-group">
           <label for="signup-confirm-password">Confirm Password</label>
-          <input type="password" id="signup-confirm-password" placeholder="Confirm password" autocomplete="new-password">
+          <div class="password-wrapper" style="position: relative;">
+            <input type="password" id="signup-confirm-password" placeholder="Confirm password" autocomplete="new-password">
+            <img src="/assets/hide.png" id="signup-confirm-password-toggle" alt="Show Password" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 22px; height: 22px; cursor: pointer;">
+          </div>
         </div>
         <button type="button" id="signup-btn">Sign Up</button>
       </form>
@@ -49,5 +59,22 @@
   
   <script src="/js/auth.js"></script>
   <script src="/js/inspector.js"></script>
+  <script>
+    // Password toggle logic for all password fields
+    function setupPasswordToggle(inputId, toggleId) {
+      const input = document.getElementById(inputId);
+      const toggle = document.getElementById(toggleId);
+      let visible = false;
+      toggle.addEventListener('click', function() {
+        visible = !visible;
+        input.type = visible ? 'text' : 'password';
+        toggle.src = visible ? '/assets/view.png' : '/assets/hide.png';
+        toggle.alt = visible ? 'Hide Password' : 'Show Password';
+      });
+    }
+    setupPasswordToggle('login-password', 'login-password-toggle');
+    setupPasswordToggle('signup-password', 'signup-password-toggle');
+    setupPasswordToggle('signup-confirm-password', 'signup-confirm-password-toggle');
+  </script>
 </body>
 </html>

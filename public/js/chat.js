@@ -132,23 +132,11 @@ function updateUserInfo() {
 async function loadFriends() {
     try {
         const response = await fetch(`/api/users/${currentUser.id}`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
         const data = await response.json();
         
         if (data.success && data.user && data.user.friends) {
-            // Check if the friends list actually changed
-            const oldFriendsIds = friends.map(f => f.id).sort().join(',');
-            const newFriendsIds = data.user.friends.map(f => f.id).sort().join(',');
-            
-            if (oldFriendsIds !== newFriendsIds) {
-                console.log("Friends list changed, updating UI");
-                friends = data.user.friends;
-                updateFriendsList();
-            }
+            friends = data.user.friends;
+            updateFriendsList();
         } else {
             console.error('Failed to load friends:', data);
         }
@@ -161,23 +149,11 @@ async function loadFriends() {
 async function loadGroups() {
     try {
         const response = await fetch(`/api/users/${currentUser.id}/groups`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
         const data = await response.json();
         
         if (data.success && data.groups) {
-            // Check if the groups list actually changed
-            const oldGroupIds = groups.map(g => g.id).sort().join(',');
-            const newGroupIds = data.groups.map(g => g.id).sort().join(',');
-            
-            if (oldGroupIds !== newGroupIds) {
-                console.log("Groups list changed, updating UI");
-                groups = data.groups;
-                updateGroupsList();
-            }
+            groups = data.groups;
+            updateGroupsList();
         } else {
             console.error('Failed to load groups:', data);
         }
@@ -779,49 +755,28 @@ socket.on('chatHistory', ({ room, history }) => {
     chatWindow.scrollTop = chatWindow.scrollHeight;
 });
 
-// Update socket.on handlers for better auto-refresh functionality
-
-// Handle group created notification - improved to automatically switch to groups tab
+// Handle group created notification
 socket.on('groupCreated', ({ group }) => {
-    // Add group to our local list
     groups.push(group);
     updateGroupsList();
     
-    // Display notification
     displaySystemNotification(`You were added to a new group: ${group.name}`);
-    
-    // Switch to groups tab automatically to show the new group
-    if (friendsTab.classList.contains('active')) {
-        setTimeout(() => {
-            groupsTab.click(); // Automatically switch to groups tab
-        }, 1000);
-    }
 });
 
-// Handle added to group notification - improved to automatically switch to groups tab
+// Handle added to group notification
 socket.on('addedToGroup', ({ group, addedBy }) => {
-    // Add group to our list
     groups.push(group);
     updateGroupsList();
     
-    // Display notification
     displaySystemNotification(`${addedBy} added you to the group: ${group.name}`);
-    
-    // Switch to groups tab automatically to show the new group
-    if (friendsTab.classList.contains('active')) {
-        setTimeout(() => {
-            groupsTab.click(); // Automatically switch to groups tab
-        }, 1000);
-    }
 });
 
-// Handle member added to group notification - with improved group data refresh
+// Handle member added to group notification
 socket.on('memberAddedToGroup', ({ group, newMemberId, newMemberUsername }) => {
     // Update group in local list
     const groupIndex = groups.findIndex(g => g.id === group.id);
     if (groupIndex !== -1) {
         groups[groupIndex] = group;
-        updateGroupsList();
     }
     
     // If currently in this group chat, display notification
@@ -830,87 +785,109 @@ socket.on('memberAddedToGroup', ({ group, newMemberId, newMemberUsername }) => {
     }
 });
 
-// Handle friend added notification - with improved refresh
+// Handle friend added notification
 socket.on('friendAdded', ({ addedByUserId, addedByUsername, message }) => {
     displaySystemNotification(message);
     
-    // Reload friends list immediately
+    // Reload friends list
     loadFriends();
 });
 
-// Add a periodic refresh for friends and groups lists
-function setupAutoRefresh() {
-    // Refresh every 30 seconds (adjust as needed)
-    setInterval(() => {
-        if (currentUser) {
-            loadFriends();
-            loadGroups();
-        }
-    }, 30000); // 30 seconds
-}
-
-// Enhanced loadFriends and loadGroups functions with better error handling
-async function loadFriends() {
-    try {
-        const response = await fetch(`/api/users/${currentUser.id}`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (data.success && data.user && data.user.friends) {
-            // Check if the friends list actually changed
-            const oldFriendsIds = friends.map(f => f.id).sort().join(',');
-            const newFriendsIds = data.user.friends.map(f => f.id).sort().join(',');
-            
-            if (oldFriendsIds !== newFriendsIds) {
-                console.log("Friends list changed, updating UI");
-                friends = data.user.friends;
-                updateFriendsList();
-            }
-        } else {
-            console.error('Failed to load friends:', data);
-        }
-    } catch (error) {
-        console.error('Error loading friends:', error);
+// Display text message
+function displayMessage(message) {
+    const isCurrentUser = message.sender === currentUser.id;
+    
+    const messageElement = document.createElement('div');
+    messageElement.className = `message ${isCurrentUser ? 'user' : 'friend'}`;
+    
+    // Add message ID to element to prevent duplicates
+    if (message.messageId) {
+        messageElement.id = `message-${message.messageId}`;
     }
+    
+    const timestamp = moment(message.timestamp).format('h:mm A');
+    
+    messageElement.innerHTML = `
+        <div class="message-sender">${isCurrentUser ? 'You' : message.senderUsername}</div>
+        <div class="message-text">${message.text}</div>
+        <div class="message-time">${timestamp}</div>
+    `;
+    
+    chatWindow.appendChild(messageElement);
+    
+    // Scroll to bottom
+    chatWindow.scrollTop = chatWindow.scrollHeight;
 }
 
-async function loadGroups() {
-    try {
-        const response = await fetch(`/api/users/${currentUser.id}/groups`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (data.success && data.groups) {
-            // Check if the groups list actually changed
-            const oldGroupIds = groups.map(g => g.id).sort().join(',');
-            const newGroupIds = data.groups.map(g => g.id).sort().join(',');
-            
-            if (oldGroupIds !== newGroupIds) {
-                console.log("Groups list changed, updating UI");
-                groups = data.groups;
-                updateGroupsList();
-            }
-        } else {
-            console.error('Failed to load groups:', data);
-        }
-    } catch (error) {
-        console.error('Error loading groups:', error);
+// Apply same changes to displayLocationMessage
+function displayLocationMessage(message) {
+    const isCurrentUser = message.sender === currentUser.id;
+    
+    const messageElement = document.createElement('div');
+    messageElement.className = `message ${isCurrentUser ? 'user' : 'friend'}`;
+    
+    // Add message ID to element to prevent duplicates
+    if (message.messageId) {
+        messageElement.id = `message-${message.messageId}`;
     }
+    
+    const timestamp = moment(message.timestamp).format('h:mm A');
+    
+    messageElement.innerHTML = `
+        <div class="message-sender">${isCurrentUser ? 'You' : message.senderUsername}</div>
+        <div class="message-text">
+            <a href="${message.url}" target="_blank">View my location</a>
+        </div>
+        <div class="message-time">${timestamp}</div>
+    `;
+    
+    chatWindow.appendChild(messageElement);
+    
+    // Scroll to bottom
+    chatWindow.scrollTop = chatWindow.scrollHeight;
 }
 
-// Initialize when page loads - with auto-refresh setup
-window.addEventListener('load', () => {
-    checkAuth();
-    setupAutoRefresh();
+// Display system notification
+function displaySystemNotification(text) {
+    const notificationElement = document.createElement('div');
+    notificationElement.className = 'notification';
+    notificationElement.textContent = text;
+    
+    chatWindow.appendChild(notificationElement);
+    
+    // Scroll to bottom
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+// Display error message
+function displayErrorMessage(text) {
+    const errorElement = document.createElement('div');
+    errorElement.className = 'notification error';
+    errorElement.textContent = text;
+    
+    chatWindow.appendChild(errorElement);
+    
+    // Scroll to bottom
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        errorElement.remove();
+    }, 5000);
+}
+
+// Check if clicked outside modals
+window.addEventListener('click', (e) => {
+    if (e.target === createGroupModal) {
+        createGroupModal.style.display = 'none';
+    }
+    if (e.target === groupInfoModal) {
+        groupInfoModal.style.display = 'none';
+    }
 });
+
+// Initialize when page loads
+window.addEventListener('load', checkAuth);
 
 // Initially disable message input until a chat is selected
 messageInput.disabled = true;
