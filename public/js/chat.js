@@ -236,12 +236,18 @@ function startPrivateChat(friend) {
     
     console.log(`Starting private chat in room: ${room}`);
     
-    // Update chat header
+    // Update chat header with friend info and unfriend button
     chatHeader.innerHTML = `
-        <div class="chat-header">
-            <div class="chat-title">${friend.username} </div>
+        <div class="chat-header-elements">
+            <div class="chat-title">${friend.username}</div>
+            <div class="friend-actions">
+                <button id="unfriend-btn">Unfriend</button>
+            </div>
         </div>
     `;
+    
+    // Add event listener for unfriend button
+    document.getElementById('unfriend-btn').addEventListener('click', () => unfriendUser(friend));
     
     // Force reconnect to ensure clean room joining
     socket.disconnect().connect();
@@ -262,6 +268,49 @@ function startPrivateChat(friend) {
     // Enable message input
     messageInput.disabled = false;
     messageInput.placeholder = "Type a message...";
+}
+
+// Add unfriend functionality
+async function unfriendUser(friend) {
+    if (!confirm(`Are you sure you want to unfriend ${friend.username}?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/users/remove-friend', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                userId: currentUser.id,
+                friendId: friend.id
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Update current user data
+            currentUser = data.user;
+            localStorage.setItem('bubbly_current_user', JSON.stringify(currentUser));
+            
+            // Remove friend from friends list
+            friends = friends.filter(f => f.id !== friend.id);
+            updateFriendsList();
+            
+            // Return to empty state
+            showEmptyState();
+            
+            // Show success notification
+            alert(`You have unfriended ${friend.username}`);
+        } else {
+            alert(`Failed to unfriend: ${data.error}`);
+        }
+    } catch (error) {
+        console.error('Error unfriending user:', error);
+        alert('Failed to unfriend: ' + error.message);
+    }
 }
 
 // Start group chat

@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="/css/index.css">
   <link rel="stylesheet" href="/css/notifications.css">
   <link rel="stylesheet" href="/css/groups.css">
+  <link rel="stylesheet" href="/css/friends.css">
   <link rel="icon" type="image/png" href="/assets/favicon.png">
 </head>
 <body>
@@ -62,7 +63,9 @@
       </div>
       <form class="message-form" id="message-form">
         <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off">
-        <button type="submit">Send</button>
+        <button type="submit" id="send-button">
+          <img src="/assets/send.png" alt="Send" class="send-icon">
+        </button>
         <button id="send-location" type="button">📍 Location</button>
       </form>
     </div>

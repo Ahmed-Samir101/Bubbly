@@ -1,0 +1,50 @@
+/* Friend actions styling */
+.friend-actions {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+.friend-actions button {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.friend-actions button:hover {
+  background-color: #2980b9;
+}
+
+.friend-actions #unfriend-btn {
+  background-color: #e74c3c;
+}
+
+.friend-actions #unfriend-btn:hover {
+  background-color: #c0392b;
+}
+
+/* Style for chat header to ensure proper layout */
+.chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 20px;
+}
+
+.chat-title {
+  font-weight: bold;
+  font-size: 1.2rem;
+  margin-right: auto; /* Pushes the title to the left */
+}
+
+/* Fix for when chat header is nested */
+.chatroom > .chat-header > .chat-header {
+  width: 100%;
+  padding: 0;
+}
