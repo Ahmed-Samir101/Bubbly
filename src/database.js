@@ -210,6 +210,57 @@ function addFriendship(userId, friendId) {
   }
 }
 
+// Remove friend relationship
+function removeFriendship(userId, friendId) {
+  const users = loadUsers();
+  const userIndex = users.findIndex(u => u.id === userId);
+  const friendIndex = users.findIndex(u => u.id === friendId);
+  
+  console.log(`Removing friendship between ${userId} and ${friendId}`);
+  console.log(`User index: ${userIndex}, Friend index: ${friendIndex}`);
+  
+  if (userIndex === -1 || friendIndex === -1) {
+    return { 
+      success: false, 
+      error: 'User or friend not found',
+      details: {
+        userFound: userIndex !== -1,
+        friendFound: friendIndex !== -1,
+        userId,
+        friendId
+      }
+    };
+  }
+  
+  // Check if friends arrays exist
+  if (!users[userIndex].friends) {
+    users[userIndex].friends = [];
+  }
+  
+  if (!users[friendIndex].friends) {
+    users[friendIndex].friends = [];
+  }
+  
+  // Remove friend from user
+  users[userIndex].friends = users[userIndex].friends.filter(f => f.id !== friendId);
+  
+  // Remove user from friend
+  users[friendIndex].friends = users[friendIndex].friends.filter(f => f.id !== userId);
+  
+  console.log(`User ${users[userIndex].username} now has ${users[userIndex].friends.length} friends`);
+  console.log(`User ${users[friendIndex].username} now has ${users[friendIndex].friends.length} friends`);
+  
+  if (saveUsers(users)) {
+    return { 
+      success: true, 
+      user: users[userIndex],
+      friend: users[friendIndex]
+    };
+  } else {
+    return { success: false, error: 'Failed to save friendship changes' };
+  }
+}
+
 // Save chat message
 function saveChatMessage(roomId, message) {
   try {
@@ -342,6 +393,7 @@ export default {
   updateUser,
   getAllUsers,
   addFriendship,
+  removeFriendship,
   saveChatMessage,
   loadChatHistory,
   createGroup,

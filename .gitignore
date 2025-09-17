@@ -36,5 +36,4 @@ Thumbs.db
 *.swp
 *.swo
 
-# Ignore assets directory
-assets/
+data/

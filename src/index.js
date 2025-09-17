@@ -209,6 +209,77 @@ app.post('/api/users/add-friend', (req, res) => {
   }
 });
 
+// Remove friend endpoint
+app.post('/api/users/remove-friend', (req, res) => {
+  const { userId, friendId } = req.body;
+  
+  console.log(`Remove friend request: User ${userId} removing friend ${friendId}`);
+  
+  if (!userId || !friendId) {
+    return res.status(400).json({ 
+      success: false, 
+      error: 'User ID and friend ID are required'
+    });
+  }
+  
+  // Find the user
+  const user = database.findUserById(userId);
+  if (!user) {
+    return res.status(404).json({ 
+      success: false, 
+      error: 'User not found'
+    });
+  }
+  
+  // Find the friend
+  const friend = database.findUserById(friendId);
+  if (!friend) {
+    return res.status(404).json({ 
+      success: false, 
+      error: 'Friend not found'
+    });
+  }
+  
+  // Remove friendship
+  const result = database.removeFriendship(user.id, friend.id);
+  
+  if (result.success) {
+    // Don't return passwords in response
+    const { password: pwd1, ...userWithoutPassword } = result.user;
+    
+    console.log(`Friendship removed successfully between ${user.username} and ${friend.username}`);
+    
+    // Try to notify the other user via socket
+    try {
+      if (userSockets[friend.id]) {
+        userSockets[friend.id].emit('friendRemoved', { 
+          removedByUserId: user.id, 
+          removedByUsername: user.username,
+          message: `${user.username} has removed you from their friends list.`
+        });
+        console.log(`Notified ${friend.username} about friendship removal`);
+      } else {
+        console.log(`Friend ${friend.username} not currently connected`);
+      }
+    } catch (notifyError) {
+      console.error('Error sending unfriend notification:', notifyError);
+    }
+    
+    return res.json({ 
+      success: true, 
+      user: userWithoutPassword
+    });
+  } else {
+    console.log(`Failed to remove friendship:`, result.error, result.details);
+    
+    return res.status(500).json({ 
+      success: false, 
+      error: result.error,
+      details: result.details || {}
+    });
+  }
+});
+
 // Get user profile
 app.get('/api/users/:id', (req, res) => {
   const user = database.findUserById(req.params.id);
