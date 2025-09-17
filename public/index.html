@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="/css/notifications.css">
   <link rel="stylesheet" href="/css/groups.css">
   <link rel="stylesheet" href="/css/friends.css">
+  <link rel="stylesheet" href="/css/voice-notes.css">
+  <link rel="stylesheet" href="/css/attachments.css">
   <link rel="icon" type="image/png" href="/assets/favicon.png">
 </head>
 <body>
@@ -62,11 +64,31 @@
         <!-- Messages will be inserted here -->
       </div>
       <form class="message-form" id="message-form">
+        <div class="attachment-container">
+          <button type="button" id="attachment-btn" class="attachment-btn">
+            <img src="/assets/paper-clip.png" alt="Attach" class="attachment-icon">
+          </button>
+          <div class="attachment-menu" id="attachment-menu">
+            <div class="attachment-option" id="location-option">
+              <span class="attachment-icon">📍</span>
+              <span class="attachment-label">Location</span>
+            </div>
+            <div class="attachment-option" id="voice-option">
+              <span class="attachment-icon">🎙️</span>
+              <span class="attachment-label">Voice Message</span>
+            </div>
+          </div>
+        </div>
         <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off">
         <button type="submit" id="send-button">
           <img src="/assets/send.png" alt="Send" class="send-icon">
         </button>
-        <button id="send-location" type="button">📍 Location</button>
+        <div id="recording-indicator" class="recording-indicator">
+          <span class="recording-pulse"></span>
+          <span>Recording...</span>
+          <span id="recording-time">0:00</span>
+          <button type="button" id="stop-recording-btn" class="stop-recording-btn">⏹️ Stop</button>
+        </div>
       </form>
     </div>
   </div>

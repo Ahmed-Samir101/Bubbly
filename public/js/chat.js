@@ -6,7 +6,6 @@ const messageForm = document.getElementById('message-form');
 const messageInput = document.getElementById('message-input');
 const chatWindow = document.getElementById('chat-window');
 const chatHeader = document.querySelector('.chat-header');
-const locationButton = document.getElementById('send-location');
 const friendNameInput = document.getElementById('friend-name-input');
 const addFriendBtn = document.getElementById('add-friend-btn');
 const friendsList = document.getElementById('friends-list');
@@ -29,6 +28,15 @@ const groupInfoContent = document.getElementById('group-info-content');
 const addGroupMemberInput = document.getElementById('add-group-member-input');
 const addGroupMemberBtn = document.getElementById('add-group-member-btn');
 
+// Attachment elements
+const attachmentBtn = document.getElementById('attachment-btn');
+const attachmentMenu = document.getElementById('attachment-menu');
+const locationOption = document.getElementById('location-option');
+const voiceOption = document.getElementById('voice-option');
+const recordingIndicator = document.getElementById('recording-indicator');
+const recordingTime = document.getElementById('recording-time');
+const stopRecordingBtn = document.getElementById('stop-recording-btn');
+
 // Current user and chat state
 let currentUser = null;
 let currentChatRoom = null;
@@ -36,6 +44,13 @@ let currentChatType = null; // 'private' or 'group'
 let currentGroupId = null;
 let friends = [];
 let groups = [];
+
+// Voice recording state
+let mediaRecorder = null;
+let audioChunks = [];
+let recordingStartTime = null;
+let recordingTimer = null;
+let isRecording = false;
 
 // Tab switching
 friendsTab.addEventListener('click', () => {
@@ -50,6 +65,109 @@ groupsTab.addEventListener('click', () => {
     friendsTab.classList.remove('active');
     groupsContainer.style.display = '';
     friendsContainer.style.display = 'none';
+});
+
+// Attachment menu handling
+attachmentBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!currentChatRoom) {
+        alert('Please select a chat first');
+        return;
+    }
+    
+    attachmentMenu.classList.toggle('active');
+});
+
+// Hide attachment menu when clicking elsewhere
+document.addEventListener('click', (e) => {
+    if (!attachmentMenu.contains(e.target) && e.target !== attachmentBtn) {
+        attachmentMenu.classList.remove('active');
+    }
+});
+
+// Location option handler
+locationOption.addEventListener('click', () => {
+    if (!currentChatRoom) {
+        alert('Please select a chat first');
+        return;
+    }
+    
+    // Hide the menu
+    attachmentMenu.classList.remove('active');
+    
+    if (!navigator.geolocation) {
+        return alert('Geolocation is not supported by your browser');
+    }
+    
+    // Show loading state
+    locationOption.innerHTML = '<span class="attachment-icon">⏳</span><span class="attachment-label">Getting location...</span>';
+    
+    navigator.geolocation.getCurrentPosition((position) => {
+        const url = `https://www.google.com/maps?q=${position.coords.latitude},${position.coords.longitude}`;
+        
+        socket.emit('sendLocation', {
+            url,
+            sender: currentUser.id,
+            senderUsername: currentUser.username,
+            room: currentChatRoom,
+            timestamp: new Date().getTime(),
+        });
+        
+        // Reset icon
+        setTimeout(() => {
+            locationOption.innerHTML = '<span class="attachment-icon">📍</span><span class="attachment-label">Location</span>';
+        }, 1000);
+        
+    }, (error) => {
+        console.error('Geolocation error:', error);
+        alert('Unable to get your location');
+        locationOption.innerHTML = '<span class="attachment-icon">📍</span><span class="attachment-label">Location</span>';
+    });
+});
+
+// Voice option handler
+voiceOption.addEventListener('click', async () => {
+    if (!currentChatRoom) {
+        alert('Please select a chat first');
+        return;
+    }
+    
+    // Hide the menu
+    attachmentMenu.classList.remove('active');
+    
+    // Don't restart recording if already recording
+    if (isRecording) {
+        return;
+    }
+    
+    try {
+        // Request microphone access
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        // Start recording
+        startRecording(stream);
+        
+    } catch (error) {
+        console.error('Error accessing microphone:', error);
+        alert('Could not access your microphone. Please check your settings and try again.');
+    }
+});
+
+// Add stop recording functionality to both the button and the indicator itself
+stopRecordingBtn.addEventListener('click', (e) => {
+    e.stopPropagation(); // Prevent event bubbling
+    if (isRecording) {
+        stopRecording();
+    }
+});
+
+// Make the entire recording indicator clickable to stop recording
+recordingIndicator.addEventListener('click', () => {
+    if (isRecording) {
+        stopRecording();
+    }
 });
 
 // Check if user is logged in
@@ -701,40 +819,134 @@ messageForm.addEventListener('submit', async (e) => {
     }
 });
 
-// Location button handler
-locationButton.addEventListener('click', () => {
-    if (!currentChatRoom) {
-        alert('Please select a chat first');
-        return;
-    }
+// Start recording functionality
+function startRecording(stream) {
+    // Create new media recorder
+    mediaRecorder = new MediaRecorder(stream);
+    audioChunks = [];
     
-    if (!navigator.geolocation) {
-        return alert('Geolocation is not supported by your browser');
-    }
+    // Handle data available event
+    mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+            audioChunks.push(event.data);
+        }
+    };
     
-    locationButton.disabled = true;
-    locationButton.textContent = 'Sending...';
-    
-    navigator.geolocation.getCurrentPosition((position) => {
-        const url = `https://www.google.com/maps?q=${position.coords.latitude},${position.coords.longitude}`;
+    // Handle recording stop
+    mediaRecorder.onstop = () => {
+        // Clear recording UI
+        clearInterval(recordingTimer);
+        recordingIndicator.classList.remove('active');
+        isRecording = false;
         
-        socket.emit('sendLocation', {
-            url,
-            sender: currentUser.id,
-            senderUsername: currentUser.username,
-            room: currentChatRoom,
-            timestamp: new Date().getTime(),
-        });
+        // Process and send the audio
+        processAudio(stream);
+    };
+    
+    // Start recording
+    mediaRecorder.start();
+    isRecording = true;
+    
+    // Update UI to show recording
+    recordingIndicator.classList.add('active');
+    
+    // Start timer
+    recordingStartTime = Date.now();
+    updateRecordingTime();
+    recordingTimer = setInterval(updateRecordingTime, 1000);
+}
+
+// Update recording time display
+function updateRecordingTime() {
+    const elapsedSeconds = Math.floor((Date.now() - recordingStartTime) / 1000);
+    const minutes = Math.floor(elapsedSeconds / 60);
+    const seconds = elapsedSeconds % 60;
+    recordingTime.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    
+    // Limit recording to 1 minute
+    if (elapsedSeconds >= 60) {
+        stopRecording();
+    }
+}
+
+// Stop recording
+function stopRecording() {
+    if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+    }
+}
+
+// Process and send audio
+function processAudio(stream) {
+    // Create blob from chunks
+    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+    
+    // Convert to base64 for transmission
+    const reader = new FileReader();
+    reader.readAsDataURL(audioBlob);
+    
+    reader.onloadend = () => {
+        const base64Audio = reader.result;
         
-        locationButton.disabled = false;
-        locationButton.textContent = '📍 Location';
-    }, (error) => {
-        console.error('Geolocation error:', error);
-        alert('Unable to get your location');
-        locationButton.disabled = false;
-        locationButton.textContent = '📍 Location';
-    });
-});
+        // Send audio message
+        const messageId = `audio_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Show sending indicator
+        const sendingIndicator = document.createElement('div');
+        sendingIndicator.className = 'message-sending-indicator';
+        sendingIndicator.id = `sending-${messageId}`;
+        sendingIndicator.textContent = 'Sending voice note...';
+        chatWindow.appendChild(sendingIndicator);
+        
+        // Scroll to bottom
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+        
+        // Close audio tracks
+        stream.getTracks().forEach(track => track.stop());
+        
+        // Calculate duration in seconds
+        const duration = Math.floor((Date.now() - recordingStartTime) / 1000);
+        
+        // Send audio based on chat type
+        if (currentChatType === 'group') {
+            socket.emit('groupVoiceMessage', {
+                audio: base64Audio,
+                sender: currentUser.id,
+                senderUsername: currentUser.username,
+                groupId: currentGroupId,
+                messageId,
+                duration
+            }, (response) => {
+                // Remove sending indicator
+                const indicator = document.getElementById(`sending-${messageId}`);
+                if (indicator) indicator.remove();
+                
+                if (!response.success) {
+                    console.error('Failed to send voice message:', response.error);
+                    displayErrorMessage('Failed to deliver voice message');
+                }
+            });
+        } else {
+            socket.emit('voiceMessage', {
+                audio: base64Audio,
+                sender: currentUser.id,
+                senderUsername: currentUser.username,
+                room: currentChatRoom,
+                messageId,
+                duration
+            }, (response) => {
+                // Remove sending indicator
+                const indicator = document.getElementById(`sending-${messageId}`);
+                if (indicator) indicator.remove();
+                
+                if (!response.success) {
+                    console.error('Failed to send voice message:', response.error);
+                    displayErrorMessage('Failed to deliver voice message');
+                }
+            });
+        }
+    };
+}
 
 // Handle incoming messages
 socket.on('chatMessage', (message) => {
@@ -767,6 +979,115 @@ socket.on('chatMessage', (message) => {
     displayMessage(message);
 });
 
+// Handle incoming voice messages
+socket.on('voiceMessage', (message) => {
+    console.log('Received voice message:', message);
+    
+    // Only process messages for the current room
+    if (message.room !== currentChatRoom) {
+        console.log(`Voice message room (${message.room}) doesn't match current room (${currentChatRoom})`);
+        return;
+    }
+
+    // Remove any sending indicators for this message
+    if (message.messageId) {
+        const indicator = document.getElementById(`sending-${message.messageId}`);
+        if (indicator) {
+            console.log(`Removing sending indicator for ${message.messageId}`);
+            indicator.remove();
+        }
+    }
+
+    // Check for duplicate messages
+    const existingMessage = document.getElementById(`message-${message.messageId}`);
+    if (existingMessage) {
+        console.log(`Voice message ${message.messageId} already exists, not duplicating`);
+        return;
+    }
+
+    // Display the voice message
+    displayVoiceMessage(message);
+});
+
+// Display voice message
+function displayVoiceMessage(message) {
+    const isCurrentUser = message.sender === currentUser.id;
+    
+    const messageElement = document.createElement('div');
+    messageElement.className = `message ${isCurrentUser ? 'user' : 'friend'}`;
+    
+    // Add message ID to element to prevent duplicates
+    if (message.messageId) {
+        messageElement.id = `message-${message.messageId}`;
+    }
+    
+    const timestamp = moment(message.timestamp).format('h:mm A');
+    const duration = formatAudioDuration(message.duration);
+    
+    messageElement.innerHTML = `
+        <div class="message-sender">${isCurrentUser ? 'You' : message.senderUsername}</div>
+        <div class="audio-message">
+            <div class="audio-controls">
+                <button class="audio-play-btn" data-audio="${message.audio}">▶</button>
+                <div class="audio-waveform"></div>
+                <span class="audio-time">${duration}</span>
+            </div>
+        </div>
+        <div class="message-time">${timestamp}</div>
+    `;
+    
+    // Add play button event listener
+    const playButton = messageElement.querySelector('.audio-play-btn');
+    playButton.addEventListener('click', () => {
+        playAudio(playButton, message.audio);
+    });
+    
+    chatWindow.appendChild(messageElement);
+    
+    // Scroll to bottom
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+// Format audio duration
+function formatAudioDuration(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
+
+// Play audio
+function playAudio(button, audioData) {
+    // Create audio element if it doesn't exist
+    let audio = button.audio;
+    
+    if (!audio) {
+        audio = new Audio(audioData);
+        button.audio = audio;
+        
+        // When audio ends, reset button
+        audio.addEventListener('ended', () => {
+            button.textContent = '▶';
+        });
+    }
+    
+    // Play or pause
+    if (audio.paused) {
+        // Stop any other playing audio
+        document.querySelectorAll('.audio-play-btn').forEach(btn => {
+            if (btn !== button && btn.audio && !btn.audio.paused) {
+                btn.audio.pause();
+                btn.textContent = '▶';
+            }
+        });
+        
+        audio.play();
+        button.textContent = '⏸';
+    } else {
+        audio.pause();
+        button.textContent = '▶';
+    }
+}
+
 // Handle incoming location messages
 socket.on('locationMessage', (message) => {
     // Only process messages for the current room
@@ -794,6 +1115,8 @@ socket.on('chatHistory', ({ room, history }) => {
         history.forEach(msg => {
             if (msg.type === 'location') {
                 displayLocationMessage(msg);
+            } else if (msg.type === 'voice') {
+                displayVoiceMessage(msg);
             } else {
                 displayMessage(msg);
             }
@@ -868,7 +1191,7 @@ function displayMessage(message) {
     chatWindow.scrollTop = chatWindow.scrollHeight;
 }
 
-// Apply same changes to displayLocationMessage
+// Display location message
 function displayLocationMessage(message) {
     const isCurrentUser = message.sender === currentUser.id;
     

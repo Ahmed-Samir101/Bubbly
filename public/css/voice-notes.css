@@ -1,0 +1,122 @@
+/* Voice recording styles */
+.recording-indicator {
+    display: none;
+    align-items: center;
+    background-color: #ff4c4c;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 14px;
+    margin-right: 10px;
+    animation: pulse 1.5s infinite;
+    cursor: pointer;
+}
+
+.recording-indicator.active {
+    display: flex;
+}
+
+.recording-pulse {
+    height: 10px;
+    width: 10px;
+    background-color: white;
+    border-radius: 50%;
+    margin-right: 8px;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+#recording-time {
+    margin-left: 5px;
+    font-family: monospace;
+    margin-right: 10px;
+}
+
+.stop-recording-btn {
+    background-color: white;
+    color: #ff4c4c;
+    border: none;
+    border-radius: 4px;
+    padding: 2px 8px;
+    cursor: pointer;
+    font-size: 12px;
+    margin-left: 8px;
+    transition: background-color 0.2s;
+}
+
+.stop-recording-btn:hover {
+    background-color: #f0f0f0;
+}
+
+#record-voice {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 12px;
+    cursor: pointer;
+    margin-left: 5px;
+    transition: background-color 0.3s;
+}
+
+#record-voice:hover {
+    background-color: #45a049;
+}
+
+#record-voice.recording {
+    background-color: #f44336;
+}
+
+/* Audio message styling */
+.audio-message {
+    display: flex;
+    align-items: center;
+    background-color: #f1f1f1;
+    border-radius: 10px;
+    padding: 8px;
+    margin: 5px 0;
+}
+
+.message.user .audio-message {
+    background-color: #dcf8c6;
+}
+
+.audio-controls {
+    display: flex;
+    align-items: center;
+}
+
+.audio-play-btn {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin-right: 10px;
+}
+
+.audio-play-btn:hover {
+    background-color: #45a049;
+}
+
+.audio-waveform {
+    height: 30px;
+    width: 100px;
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMzAiPjxwYXRoIGQ9Ik0wIDE1IEwxIDEzIEwyIDIwIEwzIDEwIEw0IDE3IEw1IDEyIEw2IDE3IEw3IDEwIEw4IDIwIEw5IDEzIEwxMCAxNSBMMTEgMTIgTDEyIDEwIEwxMyAyMCBMMTQgMTMgTDE1IDE3IEwxNiAxMCBMMTcgMTUgTDE4IDIwIEwxOSAxMyBMMjAgMTAgTDIxIDIwIEwyMiAxMyBMMjMgMTcgTDI0IDExIEwyNSAxNSBMMjYgMjAgTDI3IDEzIEwyOCAxMCBMMjkgMTUgTDMwIDE4IEwzMSAxMCBMMzIgMTMgTDMzIDE3IEwzNCAxMCBMMzUgMTUgTDM2IDE4IEwzNyAxMyBMMzggMTAgTDM5IDE4IEw0MCAxMyBMNDEgMTcgTDQyIDE1IEw0MyAxMCBMNDQgMjAgTDQ1IDEzIEw0NiAxMCBMNDcgMTUiIHN0cm9rZT0iIzY2NiIgZmlsbD0ibm9uZSIvPjwvc3ZnPg==');
+}

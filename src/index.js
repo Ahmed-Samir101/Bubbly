@@ -614,6 +614,99 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Voice message handling
+    socket.on('voiceMessage', function({ audio, sender, senderUsername, room, timestamp, messageId, duration }, callback) {
+        console.log(`Voice message in room ${room} from ${senderUsername}`);
+        
+        try {
+            if (room) {
+                // Create message object
+                const message = { 
+                    type: 'voice',
+                    audio, 
+                    sender, 
+                    senderUsername,
+                    timestamp: timestamp || new Date().getTime(),
+                    messageId: messageId || `audio_${Date.now()}`,
+                    duration: duration || 0
+                };
+                
+                // Save to database
+                database.saveChatMessage(room, message);
+                
+                // Send to all clients in room
+                io.to(room).emit('voiceMessage', { 
+                    ...message,
+                    room
+                });
+                
+                console.log(`Voice message broadcasted to ALL sockets in room ${room}`);
+                
+                // Send acknowledgment if callback exists
+                if (typeof callback === 'function') {
+                    callback({ 
+                        success: true,
+                        messageId: message.messageId
+                    });
+                }
+            } else if (typeof callback === 'function') {
+                callback({ success: false, error: 'No room specified' });
+            }
+        } catch (error) {
+            console.error('Error handling voice message:', error);
+            
+            // Send error via acknowledgment if callback exists
+            if (typeof callback === 'function') {
+                callback({ success: false, error: error.message });
+            }
+        }
+    });
+    
+    // Group voice message handling
+    socket.on('groupVoiceMessage', function({ audio, sender, senderUsername, groupId, timestamp, messageId, duration }, callback) {
+        const room = `group_${groupId}`;
+        console.log(`Group voice message in ${room} from ${senderUsername}`);
+        
+        try {
+            // Create message object
+            const message = { 
+                type: 'voice',
+                audio, 
+                sender, 
+                senderUsername,
+                timestamp: timestamp || new Date().getTime(),
+                messageId: messageId || `audio_${Date.now()}`,
+                duration: duration || 0
+            };
+            
+            // Save to database
+            database.saveChatMessage(room, message);
+            
+            // Send to all clients in group room
+            io.to(room).emit('voiceMessage', { 
+                ...message,
+                room
+            });
+            
+            console.log(`Voice message broadcasted to ALL sockets in group room ${room}`);
+            
+            // Send acknowledgment if callback exists
+            if (typeof callback === 'function') {
+                callback({ 
+                    success: true,
+                    messageId: message.messageId
+                });
+            }
+        } catch (error) {
+            console.error('Error handling group voice message:', error);
+            
+            // Send error via acknowledgment if callback exists
+            if (typeof callback === 'function') {
+                callback({ success: false, error: error.message });
+            }
+        }
+    });
+
     socket.on('disconnect', () => {
         // Only notify if we have user info
         if (socket.username) {
